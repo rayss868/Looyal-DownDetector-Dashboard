@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Looyal System Status</title>
+    <link rel="icon" href="https://www.looyal.id/assets/compro/img/108%20-%20looyal-logo.png" type="image/png">
+    <!-- Fonts: Sora (Brand) & Inter (UI) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Icons: Phosphor Icons (Lightweight) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        /* * =========================================
+         * CSS VARIABLES & THEMING
+         * =========================================
+         */
+        :root {
+            /* Light Mode (High Contrast, Clean) */
+            --bg-body: #F8FAFC;
+            --bg-card: #FFFFFF;
+            --bg-modal: rgba(255, 255, 255, 0.85);
+            --bg-sidebar: #FFFFFF;
+            --text-primary: #0F172A;
+            --text-secondary: #64748B;
+            --text-tertiary: #94A3B8;
+            --border-color: #E2E8F0;
+            --accent-color: #3B82F6;
+            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            
+            --status-operational: #10B981;
+            --status-degraded: #F59E0B;
+            --status-outage: #EF4444;
+            --bar-bg: #E2E8F0;
+
+            --font-main: 'Inter', sans-serif;
+            --font-brand: 'Sora', sans-serif;
+            --transition-speed: 0.3s;
+        }
+
+        [data-theme="dark"] {
+            /* Dark Mode (Deep Space) */
+            --bg-body: #0B0C15; /* Deep Space Black/Blue */
+            --bg-card: #151725;
+            --bg-modal: rgba(21, 23, 37, 0.75);
+            --bg-sidebar: #11121C;
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-tertiary: #475569;
+            --border-color: #2D3748;
+            --accent-color: #60A5FA;
+            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+            --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+
+            --status-operational: #34D399; /* Neon Green */
+            --status-degraded: #FBBF24;
+            --status-outage: #F87171;
+            --bar-bg: #1E293B;
+        }
+
+        /* Reset & Base */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        @keyframes pulse-glow-outage {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        /* * =========================================
+         * LAYOUT UTILITIES
+         * =========================================
+         */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            width: 100%;
+        }
+
+        header {
+            padding: 24px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 40px;
+            background: var(--bg-card);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-logo {
+            height: 40px;
+            width: auto;
+            border-radius: 8px;
+        }
+
+        h1 {
+            font-family: var(--font-brand);
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 999px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--bar-bg);
+        }
+
+        /* * =========================================
+         * MAIN GRID LAYOUT
+         * =========================================
+         */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 40px;
+            padding-bottom: 60px;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Service Cards */
+        .services-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .service-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow-card);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 0.5s ease-out backwards;
+        }
+
+        .service-card:nth-child(1) { animation-delay: 0.1s; }
+        .service-card:nth-child(2) { animation-delay: 0.2s; }
+        .service-card:nth-child(3) { animation-delay: 0.3s; }
+        .service-card:nth-child(4) { animation-delay: 0.4s; }
+        .service-card:nth-child(5) { animation-delay: 0.5s; }
+
+        .service-card:hover {
+            transform: translateY(-4px) scale(1.01);
+            border-color: var(--accent-color);
+            box-shadow: 0 12px 24px -8px rgba(59, 130, 246, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .service-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.operational { background: rgba(16, 185, 129, 0.1); color: var(--status-operational); }
+        .status-badge.degraded { background: rgba(245, 158, 11, 0.1); color: var(--status-degraded); }
+        .status-badge.outage { background: rgba(239, 68, 68, 0.1); color: var(--status-outage); }
+
+        .status-badge.operational .status-dot {
+            animation: pulse-glow 2s infinite;
+        }
+
+        .status-badge.outage .status-dot {
+            animation: pulse-glow-outage 1.5s infinite;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        /* Histogram Styling */
+        .uptime-histogram {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 40px;
+            width: 100%;
+            margin-top: 12px;
+        }
+
+        .bar {
+            flex: 1;
+            background-color: var(--bar-bg);
+            border-radius: 2px;
+            transition: height 0.5s ease-out, background-color 0.2s, transform 0.2s;
+            position: relative;
+            transform-origin: bottom;
+        }
+
+        .bar:hover {
+            opacity: 1;
+            transform: scaleY(1.15);
+            z-index: 2;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        /* Tooltip hack for bars */
+        .bar[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--text-primary);
+            color: var(--bg-card);
+            padding: 4px 8px;
+            font-size: 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+            margin-bottom: 4px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .uptime-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        /* * =========================================
+         * SIDEBAR
+         * =========================================
+         */
+        .sidebar-section h3 {
+            font-size: 1rem;
+            margin-bottom: 20px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .incident-list {
+            list-style: none;
+        }
+
+        .incident-item {
+            position: relative;
+            padding-left: 20px;
+            padding-bottom: 30px;
+            border-left: 2px solid var(--border-color);
+        }
+
+        .incident-item:last-child {
+            border-left: 2px solid transparent;
+        }
+
+        .incident-item::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 2px solid var(--text-secondary);
+        }
+
+        .incident-item.active::before {
+            border-color: var(--status-degraded);
+            background: var(--status-degraded);
+        }
+
+        .incident-date {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .incident-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+        }
+
+        .root-cause {
+            background: var(--bar-bg);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            border-left: 3px solid var(--accent-color);
+        }
+
+        .root-cause span {
+            font-weight: 700;
+            color: var(--text-primary);
+            display: block;
+            margin-bottom: 2px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        /* * =========================================
+         * GLASSMORPHISM MODAL
+         * =========================================
+         */
+        dialog {
+            border: none;
+            background: transparent;
+            padding: 0;
+            max-width: 600px;
+            width: 90%;
+            margin: auto;
+            color: var(--text-primary);
+            overflow: visible;
+        }
+
+        dialog::backdrop {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-inner {
+            background: var(--bg-modal);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: var(--shadow-modal);
+            position: relative;
+        }
+
+        [data-theme="light"] .modal-inner {
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 24px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-tertiary);
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover { color: var(--text-primary); }
+
+        /* Date Range Picker Styling */
+        .picker-group {
+            margin-bottom: 24px;
+        }
+
+        .picker-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .date-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            outline: none;
+        }
+
+        input[type="date"]:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Download Button */
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        /* Modal Uptime Big Number */
+        .modal-uptime-display {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .uptime-big {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--status-operational);
+            line-height: 1;
+        }
+        
+        .uptime-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Global Status Banner */
+        .global-status {
+            background-color: var(--status-operational);
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .global-status-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .global-status i {
+            font-size: 24px;
+        }
+
+        /* Subscribe Button */
+        .btn-subscribe {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.2s;
+            font-family: var(--font-main);
+        }
+
+        .btn-subscribe:hover {
+            opacity: 0.9;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Search Bar */
+        .search-container {
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 14px 20px 14px 48px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 1rem;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-card);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+            font-size: 20px;
+            pointer-events: none;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 32px;
+        }
+
+        .page-btn {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .page-btn.active {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: auto;
+            padding: 40px 0;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-card);
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-color);
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <div class="logo-area">
+                <img src="https://www.looyal.id/assets/compro/img/108%20-%20looyal-logo.png" alt="Looyal Logo" class="brand-logo">
+                <div>
+                    <h1>Looyal Status</h1>
+                    <div class="subtitle">Live System Performance & Uptime</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn-subscribe">
+                    <i class="ph ph-bell"></i>
+                    <span>Subscribe to Updates</span>
+                </button>
+                <button id="theme-toggle-btn" class="theme-toggle">
+                    <i class="ph ph-moon"></i>
+                    <span>Dark Mode</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        
+        <div class="dashboard-layout">
+        
+        <!-- Main Grid: Service Status -->
+        <section>
+            <div class="search-container">
+                <i class="ph ph-magnifying-glass search-icon"></i>
+                <input type="text" class="search-input" id="service-search" placeholder="Search services (e.g. API, Gateway)...">
+            </div>
+
+            <div class="services-grid" id="service-container">
+                <!-- Services injected via JS -->
+            </div>
+
+            <div class="pagination" id="pagination-controls">
+                <!-- Pagination injected via JS -->
+            </div>
+        </section>
+
+        <!-- Sidebar: Incidents -->
+        <aside class="sidebar-section">
+            <h3>Recent Incidents</h3>
+            <ul class="incident-list" id="incident-container">
+                <!-- Incidents injected via JS -->
+            </ul>
+        </aside>
+        </div>
+
+    </main>
+
+    <footer>
+        <div class="container footer-content">
+            <div>
+                &copy; 2025 Looyal Indonesia. All rights reserved.
+            </div>
+            <div class="footer-links">
+                <a href="https://www.looyal.id/" target="_blank">Looyal Website</a>
+                <a href="#">Support</a>
+                <a href="#">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Glassmorphism Modal -->
+    <dialog id="detail-modal">
+        <div class="modal-inner">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modal-title" style="margin-bottom:4px;">Service Name</h2>
+                    <span class="subtitle">Historical Performance</span>
+                </div>
+                <button class="close-btn" id="close-modal"><i class="ph ph-x"></i></button>
+            </div>
+
+            <div class="modal-uptime-display">
+                <div class="uptime-big">99.98%</div>
+                <div class="uptime-label">Average Uptime (Today)</div>
+            </div>
+
+            <div class="picker-group">
+                <label class="picker-label">Filter History By Date Range</label>
+                <div class="date-inputs">
+                    <input type="date" id="start-date">
+                    <input type="date" id="end-date">
+                </div>
+            </div>
+
+            <!-- Modal Graph -->
+            <div class="uptime-histogram" id="modal-histogram" style="height: 60px; margin-bottom: 24px;">
+                <!-- Injected via JS -->
+            </div>
+
+            <p class="subtitle" style="margin-bottom: 24px;">
+                Select a date range to view specific logs, latency reports, and root cause analysis documents for this service.
+            </p>
+
+            <div style="display: flex; gap: 12px;">
+                <button class="btn-primary" onclick="downloadRecap('pdf')">
+                    <i class="ph ph-file-pdf"></i>
+                    Download PDF
+                </button>
+                <button class="btn-primary" onclick="downloadRecap('excel')" style="background-color: #10B981;">
+                    <i class="ph ph-file-xls"></i>
+                    Download Excel
+                </button>
+            </div>
+        </div>
+    </dialog>
+
+    <script>
+        // Data Models
+        let services = [];
+        let incidents = [];
+
+        const container = document.getElementById('service-container');
+        const incidentContainer = document.getElementById('incident-container');
+        const modal = document.getElementById('detail-modal');
+        const closeModalBtn = document.getElementById('close-modal');
+        const themeBtn = document.getElementById('theme-toggle-btn');
+        const html = document.documentElement;
+
+        // 1. Theme Toggle Logic
+        let isDark = false;
+
+        function toggleTheme() {
+            isDark = !isDark;
+            const theme = isDark ? 'dark' : 'light';
+            html.setAttribute('data-theme', theme);
+            
+            // Update Button UI
+            const icon = themeBtn.querySelector('i');
+            const text = themeBtn.querySelector('span');
+            
+            if(isDark) {
+                icon.className = 'ph ph-sun';
+                text.innerText = 'Light Mode';
+            } else {
+                icon.className = 'ph ph-moon';
+                text.innerText = 'Dark Mode';
+            }
+        }
+
+        themeBtn.addEventListener('click', toggleTheme);
+
+        // 2. Histogram Generator (The Core Visual Feature)
+        function generateHistogramBars(status) {
+            let barsHtml = '';
+            // Generate 45 days of data
+            for(let i = 0; i < 45; i++) {
+                // Logic to simulate realistic data based on current status
+                let height = 100; // default full height
+                let colorVar = 'var(--status-operational)';
+                
+                const random = Math.random();
+
+                if (status === 'outage' && i > 35) {
+                    // Recent bars are red for outage
+                    height = 30 + Math.random() * 20;
+                    colorVar = 'var(--status-outage)';
+                } else if (status === 'degraded' && i > 38) {
+                     // Recent bars orange
+                    height = 60 + Math.random() * 30;
+                    colorVar = 'var(--status-degraded)';
+                } else if (random > 0.95) {
+                    // Random random dips in history
+                    height = 70;
+                    colorVar = 'var(--status-degraded)';
+                }
+
+                // Inline styles for the specific bar height and color
+                barsHtml += `<div class="bar" style="height: ${height}%; background-color: ${colorVar};" title="Uptime: ${height > 90 ? '100%' : Math.floor(height)+'%'}"></div>`;
+            }
+            return barsHtml;
+        }
+
+        async function generateRealHistogram(serviceId) {
+            try {
+                const res = await fetch(`/api/services/${serviceId}/history`);
+                const logs = await res.json();
+                
+                // Group logs by day (simple approximation for now)
+                // Since we just started, we might not have 90 days.
+                // We will show the last 45 checks/points we have.
+                
+                let barsHtml = '';
+                const maxBars = 45;
+                
+                // Fill with empty/grey bars if not enough data
+                const emptyBars = maxBars - logs.length;
+                for(let i=0; i < emptyBars; i++) {
+                    barsHtml += `<div class="bar" style="height: 100%; background-color: var(--bar-bg);" title="No Data"></div>`;
+                }
+
+                logs.slice(-maxBars).forEach(log => {
+                    let height = 100;
+                    let colorVar = 'var(--status-operational)';
+                    
+                    if (log.status === 'outage') {
+                        height = 30;
+                        colorVar = 'var(--status-outage)';
+                    } else if (log.status === 'degraded') {
+                        height = 60;
+                        colorVar = 'var(--status-degraded)';
+                    }
+                    
+                    barsHtml += `<div class="bar" style="height: ${height}%; background-color: ${colorVar};" title="${new Date(log.timestamp).toLocaleString()}"></div>`;
+                });
+                
+                return barsHtml;
+            } catch (e) {
+                console.error(e);
+                return generateHistogramBars('operational'); // Fallback
+            }
+        }
+
+        // 3. Render Services with Search & Pagination
+        let currentPage = 1;
+        const itemsPerPage = 4;
+        let filteredServices = [...services];
+
+        function filterServices(query) {
+            filteredServices = services.filter(s =>
+                s.name.toLowerCase().includes(query.toLowerCase())
+            );
+            currentPage = 1; // Reset to first page on search
+            render();
+        }
+
+        document.getElementById('service-search').addEventListener('input', (e) => {
+            filterServices(e.target.value);
+        });
+
+        function render() {
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const paginatedItems = filteredServices.slice(start, end);
+            const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
+
+            // Render Items
+            if (paginatedItems.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding: 40px; color: var(--text-secondary);">
+                        <i class="ph ph-magnifying-glass" style="font-size: 32px; margin-bottom: 12px;"></i>
+                        <p>No services found matching your search.</p>
+                    </div>
+                `;
+            } else {
+                // We need to render first, then fetch history for each card
+                container.innerHTML = paginatedItems.map((service, index) => {
+                    let statusLabel = service.status;
+                    let statusClass = service.status;
+                    const delay = index * 0.1;
+                    
+                    return `
+                    <div class="service-card" style="animation-delay: ${delay}s" onclick="openModal(${service.id}, '${service.name}', '${service.uptime}')">
+                        <div class="card-header">
+                            <div class="service-name">
+                                <i class="ph-fill ph-hard-drives"></i>
+                                ${service.name}
+                            </div>
+                            <div class="status-badge ${statusClass}">
+                                <div class="status-dot"></div>
+                                ${statusLabel}
+                            </div>
+                        </div>
+                        
+                        <div class="uptime-histogram" id="histogram-${service.id}">
+                            <!-- Loading state or fallback -->
+                            <div style="width:100%; height:100%; background:var(--bar-bg); opacity:0.5; border-radius:4px;"></div>
+                        </div>
+                        
+                        <div class="uptime-meta">
+                            <span>History</span>
+                            <span>${service.uptime}% Uptime</span>
+                            <span>Today</span>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+
+                // Fetch history for rendered items
+                paginatedItems.forEach(async (service) => {
+                    const histogramHtml = await generateRealHistogram(service.id);
+                    const el = document.getElementById(`histogram-${service.id}`);
+                    if(el) el.innerHTML = histogramHtml;
+                });
+            }
+
+            // Render Pagination
+            const paginationContainer = document.getElementById('pagination-controls');
+            if (totalPages > 1) {
+                let paginationHtml = `
+                    <button class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                        <i class="ph ph-caret-left"></i>
+                    </button>
+                `;
+
+                for (let i = 1; i <= totalPages; i++) {
+                    paginationHtml += `
+                        <button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">
+                            ${i}
+                        </button>
+                    `;
+                }
+
+                paginationHtml += `
+                    <button class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                        <i class="ph ph-caret-right"></i>
+                    </button>
+                `;
+                paginationContainer.innerHTML = paginationHtml;
+            } else {
+                paginationContainer.innerHTML = '';
+            }
+        }
+
+        window.changePage = function(page) {
+            currentPage = page;
+            render();
+            // Smooth scroll to top of list
+            document.getElementById('service-search').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // 4. Modal Logic
+        let currentServiceId = null;
+
+        async function openModal(id, name, uptime) {
+            currentServiceId = id;
+            document.getElementById('modal-title').innerText = name;
+            document.querySelector('.uptime-big').innerText = uptime + '%';
+            
+            // Set date inputs to default range (last 30 days)
+            const end = new Date();
+            const start = new Date();
+            start.setDate(end.getDate() - 30);
+            
+            document.getElementById('end-date').valueAsDate = end;
+            document.getElementById('start-date').valueAsDate = start;
+
+            // Render Graph
+            await renderModalGraph(id, start, end);
+
+            modal.showModal();
+        }
+
+        async function renderModalGraph(serviceId, startDate, endDate) {
+            const container = document.getElementById('modal-histogram');
+            container.innerHTML = '<div style="width:100%; height:100%; background:var(--bar-bg); opacity:0.5; border-radius:4px;"></div>';
+
+            try {
+                const res = await fetch(`/api/services/${serviceId}/history`);
+                const logs = await res.json();
+                
+                // Filter logs by date range
+                const filteredLogs = logs.filter(log => {
+                    const logDate = new Date(log.timestamp);
+                    return logDate >= startDate && logDate <= endDate;
+                });
+
+                let barsHtml = '';
+                // Show up to 60 bars for the modal
+                const maxBars = 60;
+                
+                // Fill with empty/grey bars if not enough data
+                const emptyBars = Math.max(0, maxBars - filteredLogs.length);
+                for(let i=0; i < emptyBars; i++) {
+                    barsHtml += `<div class="bar" style="height: 100%; background-color: var(--bar-bg);" title="No Data"></div>`;
+                }
+
+                filteredLogs.slice(-maxBars).forEach(log => {
+                    let height = 100;
+                    let colorVar = 'var(--status-operational)';
+                    
+                    if (log.status === 'outage') {
+                        height = 30;
+                        colorVar = 'var(--status-outage)';
+                    } else if (log.status === 'degraded') {
+                        height = 60;
+                        colorVar = 'var(--status-degraded)';
+                    }
+                    
+                    barsHtml += `<div class="bar" style="height: ${height}%; background-color: ${colorVar};" title="${new Date(log.timestamp).toLocaleString()}"></div>`;
+                });
+                
+                container.innerHTML = barsHtml;
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = 'Error loading data';
+            }
+        }
+
+        // Date Range Change Listeners
+        function updateGraph() {
+            if(currentServiceId) {
+                const startInput = document.getElementById('start-date');
+                const endInput = document.getElementById('end-date');
+                
+                if (!startInput.value || !endInput.value) return;
+
+                const start = new Date(startInput.value);
+                // Ensure start is at beginning of day
+                start.setHours(0, 0, 0, 0);
+                
+                const end = new Date(endInput.value);
+                // Ensure end is at end of day
+                end.setHours(23, 59, 59, 999);
+                
+                renderModalGraph(currentServiceId, start, end);
+            }
+        }
+
+        document.getElementById('start-date').addEventListener('change', updateGraph);
+        document.getElementById('end-date').addEventListener('change', updateGraph);
+
+        closeModalBtn.addEventListener('click', () => {
+            modal.close();
+        });
+
+        // Close on backdrop click
+        modal.addEventListener('click', (e) => {
+            const rect = modal.getBoundingClientRect();
+            const isInDialog = (rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+              rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+            if (!isInDialog) {
+                modal.close();
+            }
+        });
+
+        // 5. Download Recap
+        window.downloadRecap = function(format) {
+            if(!currentServiceId) return;
+            
+            const start = document.getElementById('start-date').value;
+            const end = document.getElementById('end-date').value;
+            
+            if(!start || !end) {
+                alert('Please select a date range first.');
+                return;
+            }
+            
+            const url = `/api/services/${currentServiceId}/recap?startDate=${start}&endDate=${end}&format=${format}`;
+            window.open(url, '_blank');
+        }
+
+        // 6. Fetch Data from API
+        async function fetchData() {
+            try {
+                const [servicesRes, incidentsRes] = await Promise.all([
+                    fetch('/api/services'),
+                    fetch('/api/incidents')
+                ]);
+
+                services = await servicesRes.json();
+                incidents = await incidentsRes.json();
+
+                // If no services yet (fresh DB), use dummy data for display
+                if (services.length === 0) {
+                    services = [
+                        { id: 1, name: 'Authentication API', status: 'operational', uptime: 99.99 },
+                        { id: 2, name: 'Payment Gateway', status: 'degraded', uptime: 98.45 },
+                        { id: 3, name: 'Search Engine', status: 'operational', uptime: 100.00 },
+                        { id: 4, name: 'File Storage (S3)', status: 'operational', uptime: 99.95 },
+                        { id: 5, name: 'Notification Service', status: 'outage', uptime: 85.20 },
+                    ];
+                }
+
+                filteredServices = [...services];
+                render();
+                renderIncidents();
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                // Fallback to dummy data on error
+                services = [
+                    { id: 1, name: 'Authentication API', status: 'operational', uptime: 99.99 },
+                    { id: 2, name: 'Payment Gateway', status: 'degraded', uptime: 98.45 },
+                    { id: 3, name: 'Search Engine', status: 'operational', uptime: 100.00 },
+                    { id: 4, name: 'File Storage (S3)', status: 'operational', uptime: 99.95 },
+                    { id: 5, name: 'Notification Service', status: 'outage', uptime: 85.20 },
+                ];
+                filteredServices = [...services];
+                render();
+            }
+        }
+
+        function renderIncidents() {
+            if (incidents.length === 0) {
+                incidentContainer.innerHTML = '<li class="incident-item"><div class="subtitle">No recent incidents reported.</div></li>';
+                return;
+            }
+
+            incidentContainer.innerHTML = incidents.map((incident, index) => {
+                const date = new Date(incident.createdAt).toLocaleDateString('en-US', {
+                    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric'
+                });
+                const activeClass = index === 0 ? 'active' : '';
+                
+                return `
+                <li class="incident-item ${activeClass}">
+                    <span class="incident-date">${date}</span>
+                    <div class="incident-title">${incident.title}</div>
+                    <div class="subtitle">${incident.status} - ${incident.description}</div>
+                </li>
+                `;
+            }).join('');
+        }
+
+        // Init
+        fetchData();
+
+    </script>
+</body>
+</html>

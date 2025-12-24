@@ -1,0 +1,2074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Looyal Status</title>
+    <link rel="icon" href="https://www.looyal.id/assets/compro/img/108%20-%20looyal-logo.png" type="image/png">
+    <!-- Fonts: Inter & Sora -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Icons: Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* * =========================================
+         * CSS VARIABLES & RESET
+         * =========================================
+         */
+        :root {
+            /* Light Mode (Looyal Blue Tint) */
+            --bg-body: #F8FAFC;
+            --bg-sidebar: #F0F7FF; /* Subtle Looyal Blue Tint */
+            --bg-card: #FFFFFF;
+            
+            --text-primary: #0F172A;
+            --text-secondary: #64748B;
+            --text-sidebar: #334155;
+            --text-sidebar-hover: #0F172A;
+            
+            /* Gradients & Accents */
+            --primary-gradient: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); /* Looyal Blue Gradient */
+            --accent-color: #3B82F6;
+            --accent-hover: #2563EB;
+            --accent-light: #EFF6FF;
+            
+            --border-color: #E2E8F0;
+            
+            /* Status Colors */
+            --success-bg: #ECFDF5; --success-text: #059669;
+            --warning-bg: #FFFBEB; --warning-text: #D97706;
+            --danger-bg: #FEF2F2; --danger-text: #DC2626;
+            
+            --code-bg: #1E1E1E;
+            --code-text: #D4D4D4;
+            
+            /* Enhanced Shadows */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-glow: 0 0 15px rgba(59, 130, 246, 0.3);
+            
+            --font-main: 'Inter', sans-serif;
+            --font-brand: 'Sora', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        [data-theme="dark"] {
+            /* Dark Mode (Deep Space) */
+            --bg-body: #0B0C15;
+            --bg-sidebar: #11121C;
+            --bg-card: #151725;
+            
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-sidebar: #94A3B8;
+            --text-sidebar-hover: #F8FAFC;
+            
+            --border-color: #2D3748;
+            
+            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.5);
+            
+            /* Adjust status colors for dark mode */
+            --success-bg: rgba(5, 150, 105, 0.2); --success-text: #34D399;
+            --warning-bg: rgba(217, 119, 6, 0.2); --warning-text: #FBBF24;
+            --danger-bg: rgba(220, 38, 38, 0.2); --danger-text: #F87171;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* * =========================================
+         * SIDEBAR
+         * =========================================
+         */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            color: var(--text-sidebar);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 50;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .sidebar.collapsed {
+            width: 80px;
+        }
+
+        .logo-area {
+            height: 72px;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            border-bottom: 1px solid transparent;
+            color: var(--text-primary);
+            font-family: var(--font-brand);
+            font-weight: 700;
+            font-size: 1.25rem;
+            gap: 12px;
+            overflow: hidden;
+            white-space: nowrap;
+            letter-spacing: -0.025em;
+        }
+
+        .nav-links {
+            flex: 1;
+            padding: 24px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            margin: 4px 12px;
+            border-radius: 8px;
+            color: var(--text-sidebar);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .sidebar.collapsed .nav-item {
+            justify-content: center;
+            padding: 12px;
+            margin: 4px 12px;
+        }
+
+        .sidebar.collapsed .nav-item span {
+            display: none;
+        }
+
+        .sidebar.collapsed .logo-area span {
+            display: none;
+        }
+
+        .nav-item:hover {
+            background-color: var(--accent-light);
+            color: var(--accent-color);
+        }
+
+        [data-theme="dark"] .nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background-color: var(--bg-card);
+            color: var(--accent-color);
+            font-weight: 600;
+            box-shadow: var(--shadow-sm);
+        }
+
+        [data-theme="dark"] .nav-item.active {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        
+        .nav-item.active i {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        [data-theme="dark"] .nav-item.active i {
+            color: white;
+        }
+
+        .user-profile {
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            overflow: hidden;
+            white-space: nowrap;
+            margin-top: auto;
+            background: var(--bg-card);
+        }
+
+        .sidebar.collapsed .user-profile {
+            justify-content: center;
+            padding: 20px 0;
+        }
+
+        .sidebar.collapsed .user-info {
+            display: none;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #6366F1, #8B5CF6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(99, 102, 241, 0.3);
+        }
+
+        /* * =========================================
+         * MAIN CONTENT
+         * =========================================
+         */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            height: 72px;
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+
+        .page-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background: var(--bg-body);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            width: 300px;
+            margin-left: auto;
+            margin-right: 24px;
+            transition: all 0.2s;
+        }
+
+        .search-bar:focus-within {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .search-bar input {
+            border: none;
+            background: transparent;
+            outline: none;
+            margin-left: 8px;
+            width: 100%;
+            font-family: var(--font-main);
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-family: var(--font-main);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0));
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+        }
+        
+        .btn-primary:hover::after {
+            opacity: 1;
+        }
+
+        .content-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+        }
+
+        /* * =========================================
+         * DATA TABLE
+         * =========================================
+         */
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: var(--shadow-card);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+            border-color: rgba(99, 102, 241, 0.2);
+        }
+
+        /* Stats Card Specifics */
+        .stat-card {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-icon-bg {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 120px;
+            opacity: 0.03;
+            transform: rotate(15deg);
+            color: var(--text-primary);
+            transition: all 0.5s ease;
+        }
+        
+        .stat-card:hover .stat-icon-bg {
+            transform: rotate(0deg) scale(1.1);
+            opacity: 0.06;
+            color: var(--accent-color);
+        }
+
+        .stat-trend {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 99px;
+        }
+        
+        .trend-up { background: var(--success-bg); color: var(--success-text); }
+        .trend-down { background: var(--danger-bg); color: var(--danger-text); }
+
+        .table-container {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .table-container th, .table-container td {
+            padding: 18px 24px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table-container th {
+            background-color: var(--bg-body);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .table-container tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .table-container tbody tr {
+            transition: background-color 0.2s;
+        }
+        
+        .table-container tbody tr:hover {
+            background-color: var(--bg-body);
+        }
+
+        /* View Sections */
+        .view-section {
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse-opacity {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        .platform-cell {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .platform-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--accent-color);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s;
+        }
+        
+        .table-container tbody tr:hover .platform-icon {
+            transform: scale(1.05);
+            border-color: var(--accent-color);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: currentColor;
+        }
+
+        @keyframes pulse-dot {
+            0% { box-shadow: 0 0 0 0 rgba(currentColor, 0.4); }
+            70% { box-shadow: 0 0 0 4px rgba(currentColor, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(currentColor, 0); }
+        }
+
+        .badge-danger::before {
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        .badge-success { background-color: var(--success-bg); color: var(--success-text); }
+        .badge-warning { background-color: var(--warning-bg); color: var(--warning-text); }
+        .badge-danger { background-color: var(--danger-bg); color: var(--danger-text); }
+
+        .action-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            font-size: 1.2rem;
+        }
+        .action-btn:hover { background-color: var(--accent-light); color: var(--accent-color); }
+        [data-theme="dark"] .action-btn:hover { background-color: rgba(255, 255, 255, 0.1); color: var(--text-primary); }
+
+        /* * =========================================
+         * MODAL
+         * =========================================
+         */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            width: 100%;
+            max-width: 600px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            transform: translateY(20px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            opacity: 0;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-overlay.open .modal-content {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 { font-size: 1.25rem; font-weight: 600; }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .form-group { margin-bottom: 20px; }
+        
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        /* Drag and Drop Area */
+        .drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: #F9FAFB;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent-color);
+            background-color: #EEF2FF;
+        }
+
+        .drop-zone-text {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-top: 8px;
+        }
+
+        .drop-zone-preview {
+            display: none;
+            width: 64px;
+            height: 64px;
+            margin: 0 auto;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        /* Code Editor Styling */
+        .code-editor-container {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: var(--code-bg);
+            border: 1px solid #333;
+        }
+
+        .code-editor-header {
+            background-color: #252526;
+            padding: 8px 12px;
+            font-size: 0.75rem;
+            color: #9CA3AF;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .code-textarea {
+            width: 100%;
+            height: 150px;
+            background-color: transparent;
+            color: transparent; /* Hide text but keep caret */
+            caret-color: white;
+            border: none;
+            padding: 12px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            resize: none;
+            overflow-x: hidden;
+            overflow-y: hidden; /* Prevent inner scrollbar */
+            position: absolute;
+            top: 30px; /* Header height approx */
+            left: 0;
+            z-index: 2;
+        }
+
+        .code-textarea:focus { outline: none; }
+
+        .code-highlight {
+            width: 100%;
+            min-height: 150px;
+            padding: 12px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--code-text);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin-top: 0; /* Reset */
+            pointer-events: none; /* Let clicks pass through to textarea */
+        }
+
+        .var-highlight {
+            color: #FCD34D; /* Yellow for variables */
+            font-weight: bold;
+        }
+
+        .modal-footer {
+            padding: 20px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .btn-secondary:hover { background-color: #F9FAFB; }
+
+        /* Toggle Button for Desktop */
+        .sidebar-toggle {
+            position: absolute;
+            right: -12px;
+            top: 32px;
+            width: 24px;
+            height: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            box-shadow: var(--shadow-sm);
+            z-index: 60;
+            transition: all 0.2s;
+        }
+
+        .sidebar.collapsed .sidebar-toggle {
+            transform: rotate(180deg);
+        }
+
+        .sidebar-toggle:hover {
+            color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        /* Mobile Responsiveness */
+        .menu-btn { display: none; font-size: 24px; background: none; border: none; cursor: pointer; color: var(--text-primary); margin-right: 16px; }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                height: 100%;
+                transform: translateX(-100%);
+                box-shadow: var(--shadow-lg);
+                width: 260px !important; /* Force full width on mobile */
+            }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .menu-btn { display: block; }
+            .sidebar-toggle { display: none; } /* Hide toggle on mobile */
+            .main-content header { padding: 0 16px; }
+            .content-scroll { padding: 16px; }
+            
+            /* Adjust stats grid */
+            .content-scroll > div:first-child { grid-template-columns: 1fr !important; }
+        }
+
+        /* Custom Dropdown */
+        .custom-select {
+            position: relative;
+            width: 100%;
+        }
+
+        .select-trigger {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            background: var(--bg-card);
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .select-trigger:hover {
+            border-color: var(--accent-color);
+        }
+
+        .select-options {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: var(--shadow-hover);
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .select-options.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .option {
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .option:hover {
+            background: var(--accent-light);
+            color: var(--accent-color);
+        }
+
+        .option.selected {
+            background: var(--accent-light);
+            color: var(--accent-color);
+            font-weight: 500;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <button class="sidebar-toggle" id="sidebar-toggle">
+            <i class="ph ph-caret-left"></i>
+        </button>
+
+        <div class="logo-area">
+            <img src="https://www.looyal.id/assets/compro/img/108%20-%20looyal-logo.png" style="width: 44px; height: 44px; border-radius: 10px; object-fit: contain;">
+            <span style="color: var(--text-primary);">Looyal Status</span>
+        </div>
+        <div class="nav-links">
+            <a href="#" class="nav-item active" data-view="dashboard">
+                <i class="ph ph-squares-four" style="font-size: 20px; flex-shrink: 0;"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="nav-item" data-view="analytics">
+                <i class="ph ph-chart-line-up" style="font-size: 20px; flex-shrink: 0;"></i>
+                <span>Analytics</span>
+            </a>
+            <a href="#" class="nav-item" data-view="monitors">
+                <i class="ph ph-globe" style="font-size: 20px; flex-shrink: 0;"></i>
+                <span>Monitors</span>
+            </a>
+            <a href="#" class="nav-item" data-view="webhooks">
+                <i class="ph ph-plugs" style="font-size: 20px; flex-shrink: 0;"></i>
+                <span>Webhooks</span>
+            </a>
+            <a href="#" class="nav-item" data-view="team">
+                <i class="ph ph-users" style="font-size: 20px; flex-shrink: 0;"></i>
+                <span>Team</span>
+            </a>
+            <a href="#" class="nav-item" data-view="settings">
+                <i class="ph ph-gear" style="font-size: 20px; flex-shrink: 0;"></i>
+                <span>Settings</span>
+            </a>
+        </div>
+        <div class="user-profile">
+            <div class="avatar">JD</div>
+            <div class="user-info" style="font-size: 0.875rem;">
+                <div style="font-weight: 600; color: var(--text-primary);">John Doe</div>
+                <div style="color: var(--text-secondary); font-size: 0.75rem;">admin@monitorpro.com</div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header>
+            <div style="display: flex; align-items: center;">
+                <button class="menu-btn" id="menu-btn"><i class="ph ph-list"></i></button>
+                <h1 class="page-title" id="page-title">Dashboard</h1>
+            </div>
+            
+            <div class="search-bar">
+                <i class="ph ph-magnifying-glass" style="color: var(--text-secondary);"></i>
+                <input type="text" id="dashboard-search" placeholder="Search monitors...">
+            </div>
+
+            <button class="action-btn" id="theme-toggle" style="margin-right: 16px; font-size: 20px;">
+                <i class="ph ph-moon"></i>
+            </button>
+
+            <button class="btn-primary" id="create-btn">
+                <i class="ph ph-plus-bold"></i>
+                Create New Watcher
+            </button>
+        </header>
+
+        <div class="content-scroll">
+            
+            <!-- VIEW: DASHBOARD -->
+            <div id="view-dashboard" class="view-section active">
+                <!-- Stats Row -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 32px;">
+                    <div class="card stat-card">
+                        <i class="ph-fill ph-monitor stat-icon-bg"></i>
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;">Total Monitors</div>
+                            <div class="stat-trend trend-up">
+                                <i class="ph-bold ph-trend-up"></i> +2
+                            </div>
+                        </div>
+                        <div id="stat-total-monitors" style="font-size: 2rem; font-weight: 700; color: var(--text-primary);">0</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">All systems active</div>
+                    </div>
+                    
+                    <div class="card stat-card">
+                        <i class="ph-fill ph-chart-bar stat-icon-bg"></i>
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;">Avg. Uptime</div>
+                            <div class="stat-trend trend-up">
+                                <i class="ph-bold ph-check"></i> Stable
+                            </div>
+                        </div>
+                        <div id="stat-avg-uptime" style="font-size: 2rem; font-weight: 700; color: #166534;">0%</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Today</div>
+                    </div>
+                    
+                    <div class="card stat-card">
+                        <i class="ph-fill ph-warning-circle stat-icon-bg"></i>
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;">Active Incidents</div>
+                            <div class="stat-trend trend-down" style="animation: pulse-opacity 2s infinite;">
+                                <i class="ph-bold ph-warning"></i> Alert
+                            </div>
+                        </div>
+                        <div id="stat-active-incidents" style="font-size: 2rem; font-weight: 700; color: #991B1B;">0</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Requires attention</div>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="card" style="overflow-x: auto;">
+                    <table class="table-container">
+                        <thead>
+                            <tr>
+                                <th>Platform Name</th>
+                                <th>Target URL</th>
+                                <th>Status</th>
+                                <th>Uptime (Today)</th>
+                                <th>Last Check</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- VIEW: ANALYTICS -->
+            <div id="view-analytics" class="view-section">
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+                    <!-- Main Chart -->
+                    <div class="card" style="padding: 24px; grid-column: 1 / -1;">
+                        <h3 style="margin-bottom: 16px; font-size: 1.1rem;">Response Time History (24h)</h3>
+                        <div style="height: 300px;">
+                            <canvas id="analytics-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Unstable Services -->
+                    <div class="card" style="padding: 24px;">
+                        <h3 style="margin-bottom: 16px; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                            <i class="ph-fill ph-warning" style="color: var(--warning-text);"></i> Most Unstable Services
+                        </h3>
+                        <div id="unstable-list" style="display: flex; flex-direction: column; gap: 12px;">
+                            <!-- Injected via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Recent Incidents -->
+                    <div class="card" style="padding: 24px;">
+                        <h3 style="margin-bottom: 16px; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                            <i class="ph-fill ph-bell" style="color: var(--danger-text);"></i> Recent Incidents
+                        </h3>
+                        <div id="recent-incidents-list" style="display: flex; flex-direction: column; gap: 12px;">
+                            <!-- Injected via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: MONITORS -->
+            <div id="view-monitors" class="view-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h2 style="font-size: 1.5rem; font-weight: 700;">All Monitors</h2>
+                    <div style="display: flex; gap: 12px;">
+                        <div class="search-bar" style="width: 250px; margin: 0;">
+                            <i class="ph ph-magnifying-glass" style="color: var(--text-secondary);"></i>
+                            <input type="text" id="monitors-search" placeholder="Filter monitors...">
+                        </div>
+                        <div class="custom-select" style="width: 150px;">
+                            <div class="select-trigger">
+                                <span>All Status</span>
+                                <i class="ph ph-caret-down"></i>
+                            </div>
+                            <div class="select-options">
+                                <div class="option selected" data-value="all">All Status</div>
+                                <div class="option" data-value="operational">Operational</div>
+                                <div class="option" data-value="down">Down</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="monitors-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 24px;">
+                    <!-- Monitor Cards Injected via JS -->
+                </div>
+            </div>
+
+            <!-- VIEW: WEBHOOKS -->
+            <div id="view-webhooks" class="view-section">
+                <div class="card" style="padding: 32px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <div>
+                            <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px;">Global Webhooks</h2>
+                            <p style="color: var(--text-secondary);">Manage webhook integrations for status updates.</p>
+                        </div>
+                        <button class="btn-primary" id="add-webhook-btn">
+                            <i class="ph ph-plus"></i> Add Webhook
+                        </button>
+                    </div>
+
+                    <!-- Webhook List -->
+                    <div id="webhook-list" style="display: flex; flex-direction: column; gap: 16px;">
+                        <!-- Webhooks injected via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: TEAM -->
+            <div id="view-team" class="view-section">
+                <div class="card" style="padding: 40px; text-align: center;">
+                    <i class="ph-duotone ph-users" style="font-size: 64px; color: var(--accent-color); margin-bottom: 16px;"></i>
+                    <h2 style="margin-bottom: 8px;">Team Management</h2>
+                    <p style="color: var(--text-secondary);">Invite team members and manage permissions.</p>
+                </div>
+            </div>
+
+            <!-- VIEW: SETTINGS -->
+            <div id="view-settings" class="view-section">
+                <div style="max-width: 800px; margin: 0 auto;">
+                    <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 24px;">Global Settings</h2>
+                    
+                    <!-- General Settings -->
+                    <div class="card" style="padding: 32px; margin-bottom: 24px;">
+                        <h3 style="margin-bottom: 24px; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">General Preferences</h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Site Name</label>
+                            <input type="text" class="form-input" value="Looyal Status" placeholder="e.g. My Company Status">
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">Displayed on the public status page and emails.</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Logo URL</label>
+                            <div style="display: flex; gap: 12px;">
+                                <input type="url" class="form-input" value="https://www.looyal.id/assets/compro/img/108%20-%20looyal-logo.png">
+                                <div style="width: 42px; height: 42px; border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; display: flex; align-items: center; justify-content: center; background: var(--bg-body);">
+                                    <img src="https://www.looyal.id/assets/compro/img/108%20-%20looyal-logo.png" style="max-width: 100%; max-height: 100%;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Public Status Page</label>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <label class="switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                                <span style="font-size: 0.9rem;">Visible to everyone</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Security Settings -->
+                    <div class="card" style="padding: 32px; margin-bottom: 24px;">
+                        <h3 style="margin-bottom: 24px; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">Security</h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Admin Password</label>
+                            <button class="btn-secondary" style="width: auto;">Change Password</button>
+                        </div>
+                    </div>
+
+                    <!-- Data Management -->
+                    <div class="card" style="padding: 32px; border-color: var(--danger-bg);">
+                        <h3 style="margin-bottom: 24px; font-size: 1.1rem; color: var(--danger-text); border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">Danger Zone</h3>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 600;">Clear All History</div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary);">Delete all service logs and incident history. This cannot be undone.</div>
+                            </div>
+                            <button class="btn-primary" style="background: var(--danger-text); border: none; color: white; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);">Clear Data</button>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; margin-top: 32px;">
+                        <button class="btn-primary" onclick="alert('Settings saved!')">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Create Modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Create New Watcher</h2>
+                <button class="action-btn" id="close-modal"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="create-form">
+                    <input type="hidden" id="service-id">
+                    <!-- Basic Info -->
+                    <div class="form-group">
+                        <label class="form-label">Platform Name</label>
+                        <input type="text" id="service-name" class="form-input" placeholder="e.g. Production API" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Target URL</label>
+                        <input type="url" id="service-url" class="form-input" placeholder="https://api.example.com/health" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Type</label>
+                        <div class="custom-select" id="type-select">
+                            <div class="select-trigger">
+                                <span>API</span>
+                                <i class="ph ph-caret-down"></i>
+                            </div>
+                            <div class="select-options">
+                                <div class="option selected" data-value="API">API</div>
+                                <div class="option" data-value="Website">Website</div>
+                                <div class="option" data-value="Database">Database</div>
+                            </div>
+                            <input type="hidden" id="service-type" value="API">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Check Interval</label>
+                        <div class="custom-select" id="interval-select">
+                            <div class="select-trigger">
+                                <span>Every 1 Minute</span>
+                                <i class="ph ph-caret-down"></i>
+                            </div>
+                            <div class="select-options">
+                                <div class="option" data-value="30">Every 30 Seconds</div>
+                                <div class="option selected" data-value="60">Every 1 Minute</div>
+                                <div class="option" data-value="300">Every 5 Minutes</div>
+                                <div class="option" data-value="600">Every 10 Minutes</div>
+                            </div>
+                            <input type="hidden" id="service-interval" value="60">
+                        </div>
+                    </div>
+
+                    <!-- Drag & Drop Icon (Visual Only for now) -->
+                    <div class="form-group">
+                        <label class="form-label">Platform Icon</label>
+                        <div class="drop-zone" id="drop-zone">
+                            <img id="preview-img" class="drop-zone-preview">
+                            <div id="drop-text">
+                                <i class="ph ph-upload-simple" style="font-size: 24px; color: var(--accent-color);"></i>
+                                <div class="drop-zone-text">Drag & drop an image here, or click to select</div>
+                            </div>
+                            <input type="file" id="file-input" hidden accept="image/*">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancel-btn">Cancel</button>
+                <button class="btn-primary" type="submit" form="create-form" id="submit-btn">Create Watcher</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Webhook Modal -->
+    <div class="modal-overlay" id="webhook-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Webhook</h2>
+                <button class="action-btn" id="close-webhook-modal"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="webhook-form">
+                    <div class="form-group">
+                        <label class="form-label">Webhook Type</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <label style="cursor: pointer;">
+                                <input type="radio" name="webhook-type" value="discord" checked hidden>
+                                <div class="webhook-type-card active" style="border: 2px solid var(--accent-color); border-radius: 8px; padding: 16px; text-align: center; background: var(--accent-light);">
+                                    <i class="ph ph-discord-logo" style="font-size: 32px; color: #5865F2; margin-bottom: 8px;"></i>
+                                    <div style="font-weight: 600; color: var(--text-primary);">Discord</div>
+                                </div>
+                            </label>
+                            <label style="cursor: pointer;">
+                                <input type="radio" name="webhook-type" value="external" hidden>
+                                <div class="webhook-type-card" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; text-align: center;">
+                                    <i class="ph ph-globe" style="font-size: 32px; color: var(--text-secondary); margin-bottom: 8px;"></i>
+                                    <div style="font-weight: 600; color: var(--text-primary);">External API</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Name</label>
+                        <input type="text" id="webhook-name" class="form-input" placeholder="e.g. Engineering Channel" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Endpoint URL</label>
+                        <input type="url" id="webhook-url" class="form-input" placeholder="https://..." required>
+                    </div>
+
+                    <!-- Payload Config (Only for External) -->
+                    <div id="payload-config" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label">Payload Template (JSON)</label>
+                            <div style="margin-bottom: 12px; font-size: 0.85rem; color: var(--text-secondary);">
+                                Available variables:
+                                <span style="background: var(--bg-body); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); border: 1px solid var(--border-color);">{{service}}</span>
+                                <span style="background: var(--bg-body); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); border: 1px solid var(--border-color);">{{status}}</span>
+                            </div>
+                            
+                            <div class="code-editor-container">
+                                <div class="code-editor-header">
+                                    <span>payload.json</span>
+                                    <span>JSON</span>
+                                </div>
+                                <pre class="code-highlight" id="webhook-code-highlight"></pre>
+                                <textarea class="code-textarea" id="webhook-code-input" spellcheck="false">{
+  "event": "status_update",
+  "service": "{{service}}",
+  "status": "{{status}}"
+}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancel-webhook-btn">Cancel</button>
+                <button class="btn-primary" type="submit" form="webhook-form">Add Webhook</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock Data
+        let watchers = [];
+        let webhooks = [];
+
+        // DOM Elements
+        const tableBody = document.getElementById('table-body');
+        const webhookList = document.getElementById('webhook-list');
+        const modal = document.getElementById('modal');
+        const createBtn = document.getElementById('create-btn');
+        const closeModalBtn = document.getElementById('close-modal');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const previewImg = document.getElementById('preview-img');
+        const dropText = document.getElementById('drop-text');
+        // const codeInput = document.getElementById('code-input'); // Removed
+        // const codeHighlight = document.getElementById('code-highlight'); // Removed
+        const sidebar = document.getElementById('sidebar');
+        const menuBtn = document.getElementById('menu-btn');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const pageTitle = document.getElementById('page-title');
+        const navItems = document.querySelectorAll('.nav-item');
+        const viewSections = document.querySelectorAll('.view-section');
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+
+        // Theme Toggle Logic
+        let isDark = false;
+        themeToggle.addEventListener('click', () => {
+            isDark = !isDark;
+            const theme = isDark ? 'dark' : 'light';
+            html.setAttribute('data-theme', theme);
+            
+            const icon = themeToggle.querySelector('i');
+            if(isDark) {
+                icon.className = 'ph ph-sun';
+            } else {
+                icon.className = 'ph ph-moon';
+            }
+        });
+
+        // Desktop Sidebar Collapse
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+
+        // Mobile Sidebar Toggle
+        menuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('mobile-open');
+        });
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(e.target) &&
+                !menuBtn.contains(e.target) &&
+                sidebar.classList.contains('mobile-open')) {
+                sidebar.classList.remove('mobile-open');
+            }
+        });
+
+        // Navigation Logic (SPA Feel)
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                // Remove active class from all nav items
+                navItems.forEach(nav => nav.classList.remove('active'));
+                
+                // Add active class to clicked item
+                item.classList.add('active');
+                
+                // Update Page Title
+                const viewName = item.getAttribute('data-view');
+                const titleText = item.querySelector('span').innerText;
+                pageTitle.innerText = titleText;
+
+                // Hide all views
+                viewSections.forEach(section => section.classList.remove('active'));
+                
+                // Show target view
+                const targetView = document.getElementById(`view-${viewName}`);
+                if(targetView) {
+                    targetView.classList.add('active');
+                    
+                    if(viewName === 'analytics') {
+                        loadAnalytics();
+                    } else if (viewName === 'monitors') {
+                        renderMonitorsGrid();
+                    }
+                }
+
+                // Close mobile sidebar on selection
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('mobile-open');
+                }
+            });
+        });
+
+        // Analytics Logic
+        let analyticsChart = null;
+
+        async function loadAnalytics() {
+            try {
+                const res = await fetch('/api/analytics');
+                const data = await res.json();
+                
+                renderAnalyticsChart(data.responseTimes);
+                renderUnstableServices(data.unstableServices);
+                renderRecentIncidents(data.recentIncidents);
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+            }
+        }
+
+        function renderAnalyticsChart(logs) {
+            const ctx = document.getElementById('analytics-chart').getContext('2d');
+            
+            // Process logs into time buckets (e.g., hourly average)
+            // For simplicity, we'll just take the last 50 points
+            const recentLogs = logs.slice(-50);
+            
+            const labels = recentLogs.map(l => new Date(l.timestamp).toLocaleTimeString());
+            // Ensure responseTime is a number, default to 0 if null (e.g. timeout/error)
+            const dataPoints = recentLogs.map(l => l.responseTime || 0);
+
+            if (analyticsChart) analyticsChart.destroy();
+
+            analyticsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Response Time (ms)',
+                        data: dataPoints,
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Response Time (ms)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxTicksLimit: 10 // Limit x-axis labels to avoid clutter
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderUnstableServices(services) {
+            const container = document.getElementById('unstable-list');
+            if (services.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">All services are stable.</div>';
+                return;
+            }
+            
+            container.innerHTML = services.map(s => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+                    <div style="font-weight: 500;">${s.name}</div>
+                    <div class="badge badge-warning">${s.uptime}%</div>
+                </div>
+            `).join('');
+        }
+
+        function renderRecentIncidents(incidents) {
+            const container = document.getElementById('recent-incidents-list');
+            if (incidents.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">No recent incidents.</div>';
+                return;
+            }
+
+            container.innerHTML = incidents.map(i => `
+                <div style="padding: 8px; background: var(--bg-body); border-radius: 6px; font-size: 0.9rem;">
+                    <div style="font-weight: 600; margin-bottom: 4px;">${i.title}</div>
+                    <div style="color: var(--text-secondary); font-size: 0.8rem;">${new Date(i.createdAt).toLocaleString()}</div>
+                </div>
+            `).join('');
+        }
+
+        // Monitors Grid Logic
+        function renderMonitorsGrid() {
+            const grid = document.getElementById('monitors-grid');
+            // Use filteredWatchers if search is active, otherwise all watchers
+            // For now, let's just use 'watchers' and implement local filtering later if needed
+            // or reuse the existing filteredWatchers logic
+            
+            if (watchers.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 40px;">No monitors found.</div>';
+                return;
+            }
+
+            grid.innerHTML = watchers.map(w => {
+                let statusColor = w.status === 'operational' ? 'var(--success-text)' : 'var(--danger-text)';
+                let statusBg = w.status === 'operational' ? 'var(--success-bg)' : 'var(--danger-bg)';
+                let iconClass = w.status === 'operational' ? 'ph-check-circle' : 'ph-warning-circle';
+                
+                if (w.isPaused) {
+                    statusColor = 'var(--text-secondary)';
+                    statusBg = 'var(--bg-body)';
+                    iconClass = 'ph-pause-circle';
+                }
+
+                const pauseBtnText = w.isPaused ? 'Resume' : 'Pause';
+                const pauseBtnIcon = w.isPaused ? 'ph-play' : 'ph-pause';
+
+                return `
+                <div class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px; opacity: ${w.isPaused ? '0.7' : '1'};">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <div class="platform-icon" style="width: 48px; height: 48px;">
+                                <i class="ph ph-globe"></i>
+                            </div>
+                            <div style="min-width: 0;">
+                                <div style="font-weight: 600; font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${w.name}</div>
+                                <div style="color: var(--text-secondary); font-size: 0.85rem; font-family: var(--font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${w.url}">${w.url}</div>
+                            </div>
+                        </div>
+                        <div class="badge" style="background: ${statusBg}; color: ${statusColor}; flex-shrink: 0;">
+                            <i class="ph ${iconClass}" style="margin-right: 4px;"></i> ${w.isPaused ? 'Paused' : w.status}
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Uptime (Today)</div>
+                            <div style="font-weight: 600; font-size: 1.1rem; color: var(--success-text);">${w.uptime}%</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Interval</div>
+                            <div style="font-weight: 600; font-size: 1.1rem;">${w.checkInterval}s</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Last Check</div>
+                            <div style="font-weight: 500; font-size: 0.9rem;">${new Date(w.lastChecked).toLocaleTimeString()}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Type</div>
+                            <div style="font-weight: 500; font-size: 0.9rem;">${w.type}</div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-top: auto;">
+                        <button class="btn-secondary" style="flex: 1; padding: 8px;" onclick="togglePause(${w.id}, ${!w.isPaused})">
+                            <i class="ph ${pauseBtnIcon}"></i> ${pauseBtnText}
+                        </button>
+                        <button class="btn-secondary" style="flex: 1; padding: 8px;" onclick="editService(${w.id})">
+                            <i class="ph ph-pencil-simple"></i> Edit
+                        </button>
+                        <button class="btn-secondary" style="padding: 8px; color: var(--danger-text); border-color: var(--danger-bg);" onclick="deleteService(${w.id})">
+                            <i class="ph ph-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // 1. Render Table with Search
+        let filteredWatchers = [...watchers];
+
+        function renderTable() {
+            if (filteredWatchers.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                            <i class="ph ph-magnifying-glass" style="font-size: 32px; margin-bottom: 12px; display: block; margin: 0 auto 12px auto;"></i>
+                            No monitors found matching your search.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tableBody.innerHTML = filteredWatchers.map(w => {
+                let badgeClass = 'badge-success';
+                if(w.status === 'degraded') badgeClass = 'badge-warning';
+                if(w.status === 'outage') badgeClass = 'badge-danger';
+
+                return `
+                <tr>
+                    <td>
+                        <div class="platform-cell">
+                            <div class="platform-icon">
+                                <i class="ph ph-globe"></i>
+                            </div>
+                            <span style="font-weight: 500;">${w.name}</span>
+                        </div>
+                    </td>
+                    <td style="color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.85rem;">${w.url}</td>
+                    <td><span class="badge ${badgeClass}">${w.status}</span></td>
+                    <td style="font-weight: 500;">${w.uptime}%</td>
+                    <td style="color: var(--text-secondary);">${new Date(w.lastChecked).toLocaleTimeString()}</td>
+                    <td>
+                        <button class="action-btn" onclick="editService(${w.id})"><i class="ph ph-pencil-simple"></i></button>
+                        <button class="action-btn" style="color: var(--danger-text);" onclick="deleteService(${w.id})"><i class="ph ph-trash"></i></button>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        // Search Logic
+        document.getElementById('dashboard-search').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            filteredWatchers = watchers.filter(w =>
+                w.name.toLowerCase().includes(query) ||
+                w.url.toLowerCase().includes(query)
+            );
+            renderTable();
+        });
+
+        // 2. Modal Logic
+        function openModal(mode = 'create') {
+            const title = document.getElementById('modal-title');
+            const submitBtn = document.getElementById('submit-btn');
+            const form = document.getElementById('create-form');
+            
+            if (mode === 'create') {
+                title.innerText = 'Create New Watcher';
+                submitBtn.innerText = 'Create Watcher';
+                form.reset();
+                document.getElementById('service-id').value = '';
+                // Reset custom selects
+                form.querySelectorAll('.custom-select').forEach(select => {
+                    const options = select.querySelectorAll('.option');
+                    options.forEach(o => o.classList.remove('selected'));
+                    options[0].classList.add('selected'); // Default to first
+                    select.querySelector('.select-trigger span').textContent = options[0].textContent;
+                    select.querySelector('input[type="hidden"]').value = options[0].getAttribute('data-value');
+                });
+            } else {
+                title.innerText = 'Edit Watcher';
+                submitBtn.innerText = 'Save Changes';
+            }
+            modal.classList.add('open');
+        }
+        
+        function closeModal() { modal.classList.remove('open'); }
+
+        createBtn.addEventListener('click', () => openModal('create'));
+        closeModalBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        
+        // Close on outside click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // 3. Drag and Drop Logic
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            handleFile(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            handleFile(file);
+        });
+
+        function handleFile(file) {
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImg.src = e.target.result;
+                    previewImg.style.display = 'block';
+                    dropText.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // 4. Code Editor Syntax Highlighting (Legacy Removed)
+        
+        // Init
+        // Fetch Data
+        async function fetchData() {
+            try {
+                const [servicesRes, webhooksRes] = await Promise.all([
+                    fetch('/api/services'),
+                    fetch('/api/webhooks')
+                ]);
+
+                watchers = await servicesRes.json();
+                webhooks = await webhooksRes.json();
+
+                filteredWatchers = [...watchers];
+                renderTable();
+                renderWebhooks();
+                updateStats();
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        function updateStats() {
+            // Total Monitors
+            document.getElementById('stat-total-monitors').innerText = watchers.length;
+
+            // Avg Uptime
+            // Filter out paused services from uptime calculation if desired, or keep them.
+            // Assuming uptime is a number (0-100). If it's a string, parse it.
+            const totalUptime = watchers.reduce((acc, w) => acc + parseFloat(w.uptime || 0), 0);
+            const avgUptime = watchers.length > 0 ? (totalUptime / watchers.length).toFixed(2) : '0.00';
+            document.getElementById('stat-avg-uptime').innerText = `${avgUptime}%`;
+
+            // Active Incidents (Services not operational AND not paused)
+            // If a service is paused, it shouldn't count as an active incident.
+            const activeIncidents = watchers.filter(w => w.status !== 'operational' && !w.isPaused).length;
+            document.getElementById('stat-active-incidents').innerText = activeIncidents;
+        }
+
+        // Create or Update Service
+        document.getElementById('create-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('service-id').value;
+            const name = document.getElementById('service-name').value;
+            const url = document.getElementById('service-url').value;
+            const type = document.getElementById('service-type').value;
+            const checkInterval = document.getElementById('service-interval').value;
+
+            const method = id ? 'PUT' : 'POST';
+            const endpoint = id ? `/api/services/${id}` : '/api/services';
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, url, type, checkInterval })
+                });
+                
+                if (res.ok) {
+                    closeModal();
+                    fetchData(); // Refresh list
+                    e.target.reset();
+                }
+            } catch (error) {
+                console.error('Error saving service:', error);
+            }
+        });
+
+        // Edit Service
+        function editService(id) {
+            const service = watchers.find(w => w.id === id);
+            if (!service) return;
+
+            console.log('Editing service:', service);
+
+            openModal('edit');
+            
+            document.getElementById('service-id').value = service.id;
+            document.getElementById('service-name').value = service.name;
+            document.getElementById('service-url').value = service.url;
+            
+            // Set Custom Selects
+            setCustomSelect('type-select', service.type);
+            setCustomSelect('interval-select', service.checkInterval);
+        }
+
+        function setCustomSelect(id, value) {
+            const container = document.getElementById(id);
+            if (!container) return;
+            
+            const input = container.querySelector('input[type="hidden"]');
+            const triggerSpan = container.querySelector('.select-trigger span');
+            const options = container.querySelectorAll('.option');
+
+            // Ensure value is string for comparison
+            const stringValue = String(value);
+            input.value = stringValue;
+            
+            console.log(`Setting custom select ${id} to:`, stringValue);
+
+            let found = false;
+            options.forEach(opt => {
+                const optValue = opt.getAttribute('data-value');
+                // Case-insensitive comparison for robustness
+                if (optValue.toLowerCase() === stringValue.toLowerCase()) {
+                    opt.classList.add('selected');
+                    // Use textContent because innerText can be empty if element is hidden
+                    triggerSpan.textContent = opt.textContent;
+                    found = true;
+                } else {
+                    opt.classList.remove('selected');
+                }
+            });
+
+            // Fallback if no option matches
+            if (!found) {
+                console.warn(`No option found for value: ${stringValue} in ${id}`);
+                triggerSpan.textContent = value || 'Select...';
+                // Clear selection visual
+                options.forEach(o => o.classList.remove('selected'));
+            }
+        }
+
+        // Toggle Pause
+        async function togglePause(id, shouldPause) {
+            try {
+                // Optimistic UI Update
+                const serviceIndex = watchers.findIndex(w => w.id === id);
+                if (serviceIndex !== -1) {
+                    watchers[serviceIndex].isPaused = shouldPause;
+                    renderMonitorsGrid(); // Re-render immediately
+                }
+
+                const res = await fetch(`/api/services/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isPaused: shouldPause })
+                });
+                
+                if (!res.ok) {
+                    // Revert if failed
+                    if (serviceIndex !== -1) {
+                        watchers[serviceIndex].isPaused = !shouldPause;
+                        renderMonitorsGrid();
+                    }
+                    console.error('Failed to toggle pause');
+                } else {
+                    // Background refresh to ensure sync
+                    fetchData();
+                }
+            } catch (error) {
+                console.error('Error toggling pause:', error);
+                // Revert on error
+                const serviceIndex = watchers.findIndex(w => w.id === id);
+                if (serviceIndex !== -1) {
+                    watchers[serviceIndex].isPaused = !shouldPause;
+                    renderMonitorsGrid();
+                }
+            }
+        }
+
+        // Delete Service
+        async function deleteService(id) {
+            if(!confirm('Are you sure you want to delete this service?')) return;
+            try {
+                await fetch(`/api/services/${id}`, { method: 'DELETE' });
+                fetchData();
+            } catch (error) {
+                console.error('Error deleting service:', error);
+            }
+        }
+
+        // Render Webhooks
+        function renderWebhooks() {
+            if (webhooks.length === 0) {
+                webhookList.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">No webhooks configured.</div>';
+                return;
+            }
+
+            webhookList.innerHTML = webhooks.map(wh => `
+                <div class="webhook-item" style="border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; background: var(--bg-body);">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <div style="width: 40px; height: 40px; border-radius: 8px; background: ${wh.type === 'discord' ? '#5865F2' : 'var(--accent-color)'}; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
+                                <i class="ph ${wh.type === 'discord' ? 'ph-discord-logo' : 'ph-globe'}"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary);">${wh.name}</div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); font-family: var(--font-mono);">${wh.url}</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="action-btn"><i class="ph ph-pencil-simple"></i></button>
+                            <button class="action-btn" style="color: var(--danger-text);" onclick="deleteWebhook(${wh.id})"><i class="ph ph-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="badge badge-success">Active</div>
+                </div>
+            `).join('');
+        }
+
+        // Create Webhook
+        document.getElementById('webhook-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('webhook-name').value;
+            const url = document.getElementById('webhook-url').value;
+            const type = document.querySelector('input[name="webhook-type"]:checked').value;
+
+            try {
+                const res = await fetch('/api/webhooks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, url, type })
+                });
+                
+                if (res.ok) {
+                    closeWebhookModal();
+                    fetchData();
+                    e.target.reset();
+                }
+            } catch (error) {
+                console.error('Error creating webhook:', error);
+            }
+        });
+
+        // Delete Webhook
+        async function deleteWebhook(id) {
+            if(!confirm('Delete this webhook?')) return;
+            try {
+                await fetch(`/api/webhooks/${id}`, { method: 'DELETE' });
+                fetchData();
+            } catch (error) {
+                console.error('Error deleting webhook:', error);
+            }
+        }
+
+        fetchData();
+
+        // Webhook Modal Logic
+        const webhookModal = document.getElementById('webhook-modal');
+        const addWebhookBtn = document.getElementById('add-webhook-btn');
+        const closeWebhookModalBtn = document.getElementById('close-webhook-modal');
+        const cancelWebhookBtn = document.getElementById('cancel-webhook-btn');
+        const webhookTypeInputs = document.querySelectorAll('input[name="webhook-type"]');
+        const payloadConfig = document.getElementById('payload-config');
+        const webhookCodeInput = document.getElementById('webhook-code-input');
+        const webhookCodeHighlight = document.getElementById('webhook-code-highlight');
+
+        function openWebhookModal() { webhookModal.classList.add('open'); }
+        function closeWebhookModal() { webhookModal.classList.remove('open'); }
+
+        if(addWebhookBtn) addWebhookBtn.addEventListener('click', openWebhookModal);
+        if(closeWebhookModalBtn) closeWebhookModalBtn.addEventListener('click', closeWebhookModal);
+        if(cancelWebhookBtn) cancelWebhookBtn.addEventListener('click', closeWebhookModal);
+
+        // Webhook Type Selection Styling & Logic
+        webhookTypeInputs.forEach(input => {
+            input.addEventListener('change', (e) => {
+                // Reset styles
+                document.querySelectorAll('.webhook-type-card').forEach(card => {
+                    card.style.border = '1px solid var(--border-color)';
+                    card.style.background = 'transparent';
+                    card.classList.remove('active');
+                });
+
+                // Apply active style
+                const activeCard = e.target.nextElementSibling;
+                activeCard.style.border = '2px solid var(--accent-color)';
+                activeCard.style.background = 'var(--accent-light)';
+                activeCard.classList.add('active');
+
+                // Show/Hide Payload Config
+                if (e.target.value === 'external') {
+                    payloadConfig.style.display = 'block';
+                    // Trigger autosize for the new editor
+                    setTimeout(autosizeWebhookEditor, 0);
+                } else {
+                    payloadConfig.style.display = 'none';
+                }
+            });
+        });
+
+        // Webhook Code Editor Logic (Duplicate of main editor logic, simplified for demo)
+        function autosizeWebhookEditor() {
+            webhookCodeInput.style.height = 'auto';
+            const nextHeight = Math.max(webhookCodeInput.scrollHeight, 150);
+            webhookCodeInput.style.height = `${nextHeight}px`;
+            webhookCodeHighlight.style.minHeight = `${nextHeight}px`;
+        }
+
+        function updateWebhookHighlight() {
+            let text = webhookCodeInput.value;
+            text = text.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">");
+            text = text.replace(/(\{\{.*?\}\})/g, '<span class="var-highlight">$1</span>');
+            webhookCodeHighlight.innerHTML = text;
+            autosizeWebhookEditor();
+        }
+
+        webhookCodeInput.addEventListener('input', updateWebhookHighlight);
+        webhookCodeInput.addEventListener('scroll', () => {
+            webhookCodeHighlight.scrollTop = webhookCodeInput.scrollTop;
+            webhookCodeHighlight.scrollLeft = webhookCodeInput.scrollLeft;
+        });
+        
+        // Initial call for webhook editor
+        updateWebhookHighlight();
+
+        // Custom Select Logic
+        document.querySelectorAll('.custom-select').forEach(select => {
+            const trigger = select.querySelector('.select-trigger');
+            const options = select.querySelector('.select-options');
+            const hiddenInput = select.querySelector('input[type="hidden"]');
+            const optionItems = select.querySelectorAll('.option');
+
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Close other selects
+                document.querySelectorAll('.select-options').forEach(opt => {
+                    if (opt !== options) opt.classList.remove('open');
+                });
+                options.classList.toggle('open');
+                trigger.querySelector('i').style.transform = options.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+            });
+
+            optionItems.forEach(option => {
+                option.addEventListener('click', () => {
+                    // Update UI
+                    trigger.querySelector('span').textContent = option.textContent;
+                    optionItems.forEach(o => o.classList.remove('selected'));
+                    option.classList.add('selected');
+                    
+                    // Update Value
+                    if (hiddenInput) {
+                        hiddenInput.value = option.getAttribute('data-value');
+                    }
+                    
+                    // Close
+                    options.classList.remove('open');
+                    trigger.querySelector('i').style.transform = 'rotate(0deg)';
+                });
+            });
+        });
+
+        // Close selects when clicking outside
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.select-options').forEach(opt => {
+                opt.classList.remove('open');
+            });
+            document.querySelectorAll('.select-trigger i').forEach(icon => {
+                icon.style.transform = 'rotate(0deg)';
+            });
+        });
+
+    </script>
+</body>
+</html>
