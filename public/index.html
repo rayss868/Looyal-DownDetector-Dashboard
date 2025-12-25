@@ -686,10 +686,6 @@
                 </div>
             </div>
             <div class="header-actions">
-                <button class="btn-subscribe">
-                    <i class="ph ph-bell"></i>
-                    <span>Subscribe to Updates</span>
-                </button>
                 <button id="theme-toggle-btn" class="theme-toggle">
                     <i class="ph ph-moon"></i>
                     <span>Dark Mode</span>
@@ -856,35 +852,55 @@
 
         async function generateRealHistogram(serviceId) {
             try {
-                const res = await fetch(`/api/services/${serviceId}/history`);
-                const logs = await res.json();
-                
-                // Group logs by day (simple approximation for now)
-                // Since we just started, we might not have 90 days.
-                // We will show the last 45 checks/points we have.
+                // Fetch daily stats
+                const res = await fetch(`/api/services/${serviceId}/history?group=day`);
+                const dailyStats = await res.json();
                 
                 let barsHtml = '';
-                const maxBars = 45;
+                const maxBars = 45; // Show last 45 days
                 
-                // Fill with empty/grey bars if not enough data
-                const emptyBars = maxBars - logs.length;
+                // Fill with empty/grey bars if not enough data (e.g. new service)
+                const emptyBars = Math.max(0, maxBars - dailyStats.length);
                 for(let i=0; i < emptyBars; i++) {
                     barsHtml += `<div class="bar" style="height: 100%; background-color: var(--bar-bg);" title="No Data"></div>`;
                 }
 
-                logs.slice(-maxBars).forEach(log => {
+                // Render bars based on daily stats
+                // The API returns stats from oldest to newest (because of the loop order in backend, wait, let's check backend order)
+                // Backend loop: for (let i = days - 1; i >= 0; i--) -> This pushes oldest first (i=44 is 44 days ago).
+                // So dailyStats is [oldest, ..., today]
+                
+                dailyStats.forEach(stat => {
                     let height = 100;
                     let colorVar = 'var(--status-operational)';
+                    let title = '';
                     
-                    if (log.status === 'outage') {
-                        height = 30;
-                        colorVar = 'var(--status-outage)';
-                    } else if (log.status === 'degraded') {
-                        height = 60;
-                        colorVar = 'var(--status-degraded)';
+                    if (stat.status === 'no_data' || stat.uptime === null) {
+                        height = 100;
+                        colorVar = 'var(--bar-bg)'; // Empty/Grey
+                        const dateStr = new Date(stat.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                        title = `${dateStr}: No Data`;
+                    } else {
+                        const uptime = parseFloat(stat.uptime);
+
+                        // Height is directly proportional to uptime
+                        height = uptime;
+                        
+                        if (uptime === 100) {
+                            colorVar = 'var(--status-operational)';
+                        } else if (uptime >= 70) {
+                            colorVar = 'var(--status-operational)';
+                        } else if (uptime >= 40) {
+                            colorVar = 'var(--status-degraded)';
+                        } else {
+                            colorVar = 'var(--status-outage)';
+                        }
+                        
+                        const dateStr = new Date(stat.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                        title = `${dateStr}: ${uptime}% Uptime`;
                     }
-                    
-                    barsHtml += `<div class="bar" style="height: ${height}%; background-color: ${colorVar};" title="${new Date(log.timestamp).toLocaleString()}"></div>`;
+
+                    barsHtml += `<div class="bar" style="height: ${height}%; background-color: ${colorVar};" title="${title}"></div>`;
                 });
                 
                 return barsHtml;
@@ -929,7 +945,7 @@
                 // We need to render first, then fetch history for each card
                 container.innerHTML = paginatedItems.map((service, index) => {
                     let statusLabel = service.status;
-                    let statusClass = service.status;
+                    let statusClass = service.status ? service.status.toLowerCase() : 'unknown';
                     const delay = index * 0.1;
                     
                     return `
@@ -1029,40 +1045,59 @@
             container.innerHTML = '<div style="width:100%; height:100%; background:var(--bar-bg); opacity:0.5; border-radius:4px;"></div>';
 
             try {
-                const res = await fetch(`/api/services/${serviceId}/history`);
-                const logs = await res.json();
+                const startStr = startDate.toISOString().split('T')[0];
+                const endStr = endDate.toISOString().split('T')[0];
                 
-                // Filter logs by date range
-                const filteredLogs = logs.filter(log => {
-                    const logDate = new Date(log.timestamp);
-                    return logDate >= startDate && logDate <= endDate;
-                });
-
+                // Fetch daily aggregated stats for the selected range
+                const res = await fetch(`/api/services/${serviceId}/history?group=day&start=${startStr}&end=${endStr}`);
+                const stats = await res.json();
+                
                 let barsHtml = '';
-                // Show up to 60 bars for the modal
-                const maxBars = 60;
-                
-                // Fill with empty/grey bars if not enough data
-                const emptyBars = Math.max(0, maxBars - filteredLogs.length);
-                for(let i=0; i < emptyBars; i++) {
-                    barsHtml += `<div class="bar" style="height: 100%; background-color: var(--bar-bg);" title="No Data"></div>`;
-                }
+                let totalUptime = 0;
+                let dataCount = 0;
 
-                filteredLogs.slice(-maxBars).forEach(log => {
+                stats.forEach(stat => {
                     let height = 100;
                     let colorVar = 'var(--status-operational)';
+                    let title = '';
                     
-                    if (log.status === 'outage') {
-                        height = 30;
-                        colorVar = 'var(--status-outage)';
-                    } else if (log.status === 'degraded') {
-                        height = 60;
-                        colorVar = 'var(--status-degraded)';
+                    if (stat.status === 'no_data' || stat.uptime === null) {
+                        height = 100;
+                        colorVar = 'var(--bar-bg)'; // Empty/Grey
+                        const dateStr = new Date(stat.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                        title = `${dateStr}: No Data`;
+                    } else {
+                        const uptime = parseFloat(stat.uptime);
+                        height = uptime;
+                        
+                        totalUptime += uptime;
+                        dataCount++;
+
+                        if (uptime === 100) {
+                            colorVar = 'var(--status-operational)';
+                        } else if (uptime >= 70) {
+                            colorVar = 'var(--status-operational)';
+                        } else if (uptime >= 40) {
+                            colorVar = 'var(--status-degraded)';
+                        } else {
+                            colorVar = 'var(--status-outage)';
+                        }
+                        
+                        const dateStr = new Date(stat.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                        title = `${dateStr}: ${uptime}% Uptime`;
                     }
-                    
-                    barsHtml += `<div class="bar" style="height: ${height}%; background-color: ${colorVar};" title="${new Date(log.timestamp).toLocaleString()}"></div>`;
+
+                    barsHtml += `<div class="bar" style="height: ${height}%; background-color: ${colorVar}; flex: 1;" title="${title}"></div>`;
                 });
                 
+                // Update percentage and label
+                const avgUptime = dataCount > 0 ? (totalUptime / dataCount).toFixed(2) : '100.00';
+                document.querySelector('.uptime-big').innerText = avgUptime + '%';
+                
+                // Update subtitle to reflect range
+                const rangeText = dataCount === 1 ? 'Today' : `Selected Range (${stats.length} days)`;
+                document.querySelector('.uptime-label').innerText = `Average Uptime (${rangeText})`;
+
                 container.innerHTML = barsHtml;
             } catch (e) {
                 console.error(e);
@@ -1126,13 +1161,43 @@
         // 6. Fetch Data from API
         async function fetchData() {
             try {
-                const [servicesRes, incidentsRes] = await Promise.all([
+                const [servicesRes, incidentsRes, settingsRes] = await Promise.all([
                     fetch('/api/services'),
-                    fetch('/api/incidents')
+                    fetch('/api/incidents'),
+                    fetch('/api/settings')
                 ]);
 
                 services = await servicesRes.json();
                 incidents = await incidentsRes.json();
+                const settings = await settingsRes.json();
+
+                // Apply Settings
+                if (settings) {
+                    // Check if public page is enabled
+                    if (settings.publicStatusPage === 'false') {
+                        document.body.innerHTML = `
+                            <div style="display:flex; justify-content:center; align-items:center; height:100vh; flex-direction:column; gap:16px;">
+                                <i class="ph ph-lock-key" style="font-size:48px; color:var(--text-secondary);"></i>
+                                <h2>Status Page is Private</h2>
+                                <p style="color:var(--text-secondary);">This status page is currently not available to the public.</p>
+                                <a href="/login" style="color:var(--accent-color); text-decoration:none; font-weight:600;">Admin Login</a>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    if (settings.siteName) {
+                        document.title = settings.siteName;
+                        document.querySelector('h1').innerText = settings.siteName;
+                    }
+                    if (settings.logoUrl) {
+                        const logo = document.querySelector('.brand-logo');
+                        if (logo) logo.src = settings.logoUrl;
+                        // Update favicon
+                        const favicon = document.querySelector('link[rel="icon"]');
+                        if (favicon) favicon.href = settings.logoUrl;
+                    }
+                }
 
                 // If no services yet (fresh DB), use dummy data for display
                 if (services.length === 0) {

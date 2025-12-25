@@ -5,30 +5,35 @@ const { Op } = require('sequelize');
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
 
-const calculateUptime = async (serviceId) => {
-    // Calculate uptime based on logs from today (since 00:00)
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+const calculateUptime = async (serviceId, startDate = null, endDate = null) => {
+    // Default to today (since 00:00) if no dates provided
+    const start = startDate ? new Date(startDate) : new Date();
+    if (!startDate) start.setHours(0, 0, 0, 0);
     
+    const end = endDate ? new Date(endDate) : new Date();
+
     const logs = await ServiceLog.findAll({
         where: {
             serviceId: serviceId,
-            timestamp: { [Op.gte]: todayStart }
+            timestamp: {
+                [Op.gte]: start,
+                [Op.lte]: end
+            }
         },
         order: [['timestamp', 'ASC']]
     });
 
-    // If no logs today, we need to check the last known status before today
+    // If no logs in range, check the last known status before start
     if (logs.length === 0) {
         const lastLog = await ServiceLog.findOne({
             where: {
                 serviceId: serviceId,
-                timestamp: { [Op.lt]: todayStart }
+                timestamp: { [Op.lt]: start }
             },
             order: [['timestamp', 'DESC']]
         });
 
-        // If the last known status was outage, then uptime is 0% for today so far
+        // If the last known status was outage, then uptime is 0% for this period
         if (lastLog && (lastLog.status === 'outage' || lastLog.status === 'degraded')) {
             return 0.0;
         }
@@ -38,16 +43,15 @@ const calculateUptime = async (serviceId) => {
 
     let totalDuration = 0;
     let outageDuration = 0;
-    const now = new Date();
-
+    
     let lastStatus = 'operational';
-    let lastTime = todayStart;
+    let lastTime = start;
 
     // Find the status just before the window if possible, otherwise assume operational
     const previousLog = await ServiceLog.findOne({
         where: {
             serviceId: serviceId,
-            timestamp: { [Op.lt]: todayStart }
+            timestamp: { [Op.lt]: start }
         },
         order: [['timestamp', 'DESC']]
     });
@@ -56,19 +60,24 @@ const calculateUptime = async (serviceId) => {
         lastStatus = previousLog.status;
     }
 
-    // Add a "virtual" log for the current time to close the window
-    const relevantLogs = [...logs, { timestamp: now, status: 'end_of_window' }];
+    // Add a "virtual" log for the end time to close the window
+    const relevantLogs = [...logs, { timestamp: end, status: 'end_of_window' }];
 
     for (const log of relevantLogs) {
         const currentTime = new Date(log.timestamp);
-        const duration = currentTime - lastTime;
+        // Ensure we don't go beyond end time (though query limits it, virtual log is exactly at end)
+        const effectiveTime = currentTime > end ? end : currentTime;
+        
+        const duration = effectiveTime - lastTime;
 
-        if (lastStatus === 'outage' || lastStatus === 'degraded') {
-            outageDuration += duration;
+        if (duration > 0) {
+            if (lastStatus === 'outage' || lastStatus === 'degraded') {
+                outageDuration += duration;
+            }
+            totalDuration += duration;
         }
 
-        totalDuration += duration;
-        lastTime = currentTime;
+        lastTime = effectiveTime;
         
         if (log.status !== 'end_of_window') {
             lastStatus = log.status;
@@ -115,6 +124,7 @@ exports.getAnalytics = async (req, res) => {
 
         // Identify unstable services (lowest uptime)
         const unstableServices = servicesWithUptime
+            .filter(s => s.uptime < 100)
             .sort((a, b) => a.uptime - b.uptime)
             .slice(0, 5);
 
@@ -152,7 +162,147 @@ exports.getAllServices = async (req, res) => {
 exports.getServiceHistory = async (req, res) => {
     try {
         const { id } = req.params;
-        // Fetch logs for the last 90 days (or less)
+        const { group, start, end } = req.query;
+
+        if (group === 'day') {
+            const now = new Date();
+            let startDate, endDate;
+
+            if (start && end) {
+                startDate = new Date(start);
+                startDate.setHours(0, 0, 0, 0);
+                endDate = new Date(end);
+                endDate.setHours(23, 59, 59, 999);
+            } else {
+                // Default to last 45 days
+                startDate = new Date();
+                startDate.setDate(now.getDate() - 44);
+                startDate.setHours(0, 0, 0, 0);
+                endDate = new Date(now);
+            }
+
+            // Calculate number of days in range
+            const diffTime = Math.abs(endDate - startDate);
+            const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            const dailyStats = [];
+
+            // Fetch all logs in the range
+            const logs = await ServiceLog.findAll({
+                where: {
+                    serviceId: id,
+                    timestamp: {
+                        [Op.gte]: startDate,
+                        [Op.lte]: endDate
+                    }
+                },
+                order: [['timestamp', 'ASC']]
+            });
+
+            // Fetch the last status BEFORE the range to determine initial state
+            const previousLog = await ServiceLog.findOne({
+                where: {
+                    serviceId: id,
+                    timestamp: { [Op.lt]: startDate }
+                },
+                order: [['timestamp', 'DESC']]
+            });
+
+            // Default to 'unknown' if no history, to distinguish "no data" from "outage"
+            // Default to 'unknown' if no history, to distinguish "no data" from "operational"
+            let currentStatus = previousLog ? previousLog.status : 'unknown';
+
+            for (let i = 0; i < days; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                
+                const dayStart = new Date(date);
+                dayStart.setHours(0, 0, 0, 0);
+                
+                const dayEnd = new Date(date);
+                dayEnd.setHours(23, 59, 59, 999);
+                
+                // Cap end time to now if it's today (or future)
+                const effectiveEnd = (dayEnd > now) ? now : dayEnd;
+                
+                if (dayStart > now) break;
+
+                // Filter logs for this day
+                const dayLogs = logs.filter(l => {
+                    const t = new Date(l.timestamp);
+                    return t >= dayStart && t <= dayEnd;
+                });
+
+                // Handle "No Data" case: No logs today AND status is unknown (no prior history)
+                if (dayLogs.length === 0 && currentStatus === 'unknown') {
+                    dailyStats.push({
+                        date: dayStart.toISOString().split('T')[0],
+                        uptime: null,
+                        status: 'no_data'
+                    });
+                    continue;
+                }
+
+                // Calculate uptime for this day
+                let totalDuration = effectiveEnd - dayStart;
+                if (totalDuration < 0) totalDuration = 0;
+                
+                let outageDuration = 0;
+                let lastTime = dayStart;
+                let tempStatus = currentStatus;
+
+                // Add a virtual log at the end to close the loop
+                const processingLogs = [...dayLogs, { timestamp: effectiveEnd, status: 'end_of_day' }];
+
+                for (const log of processingLogs) {
+                    const logTime = new Date(log.timestamp);
+                    const effectiveLogTime = logTime > effectiveEnd ? effectiveEnd : logTime;
+                    
+                    const duration = effectiveLogTime - lastTime;
+                    
+                    if (duration > 0) {
+                        // Treat 'unknown' as 'operational' (or at least NOT 'outage')
+                        // to avoid punishing new services with no history.
+                        if (tempStatus === 'outage' || tempStatus === 'degraded') {
+                            outageDuration += duration;
+                        }
+                    }
+
+                    lastTime = effectiveLogTime;
+                    if (log.status !== 'end_of_day') {
+                        tempStatus = log.status;
+                    }
+                }
+
+                // Update currentStatus for the next day
+                if (dayLogs.length > 0) {
+                    currentStatus = dayLogs[dayLogs.length - 1].status;
+                }
+
+                let uptime = 0;
+                if (totalDuration > 0) {
+                    uptime = ((totalDuration - outageDuration) / totalDuration) * 100;
+                } else {
+                    uptime = (currentStatus === 'operational') ? 100 : 0;
+                }
+                
+                uptime = parseFloat(Math.max(0, Math.min(100, uptime)).toFixed(2));
+
+                let statusLabel = 'operational';
+                if (uptime < 100 && uptime >= 70) statusLabel = 'degraded';
+                if (uptime < 70) statusLabel = 'outage';
+
+                dailyStats.push({
+                    date: dayStart.toISOString().split('T')[0],
+                    uptime,
+                    status: statusLabel
+                });
+            }
+            
+            return res.json(dailyStats);
+        }
+
+        // Default: Fetch raw logs for the last 90 days
         const logs = await ServiceLog.findAll({
             where: {
                 serviceId: id,
@@ -207,50 +357,42 @@ exports.downloadRecap = async (req, res) => {
         const service = await Service.findByPk(id);
         if (!service) return res.status(404).json({ message: 'Service not found' });
 
-        // Parse dates assuming YYYY-MM-DD format which defaults to UTC midnight
         const start = new Date(startDate);
-        // Ensure start is at 00:00:00.000 UTC
-        if (!isNaN(start.getTime())) {
-            start.setUTCHours(0, 0, 0, 0);
-        }
+        start.setUTCHours(0, 0, 0, 0);
 
         const end = new Date(endDate);
-        // Ensure end is at 23:59:59.999 UTC
-        if (!isNaN(end.getTime())) {
-            end.setUTCHours(23, 59, 59, 999);
-        }
+        end.setUTCHours(23, 59, 59, 999);
 
-        console.log(`[DownloadRecap] Fetching logs for Service ${id} from ${start.toISOString()} to ${end.toISOString()}`);
-
-        // Debug: Check total logs for this service without date filter
-        const totalServiceLogs = await ServiceLog.count({ where: { serviceId: id } });
-        console.log(`[DownloadRecap] Total logs for service ${id} in DB: ${totalServiceLogs}`);
-
+        // Fetch logs for the range
         const logs = await ServiceLog.findAll({
             where: {
                 serviceId: id,
-                timestamp: {
-                    [Op.gte]: start,
-                    [Op.lte]: end
-                }
+                timestamp: { [Op.gte]: start, [Op.lte]: end }
             },
             order: [['timestamp', 'ASC']]
         });
 
-        console.log(`[DownloadRecap] Found ${logs.length} logs in range.`);
+        // Calculate Average Uptime only for days where data exists
+        // This prevents the percentage from being diluted by empty historical days.
+        let displayUptime = "100.00";
+        if (logs.length > 0) {
+            // Find the actual date of the FIRST recorded ping
+            const firstLogDate = new Date(logs[0].timestamp);
+            const actualStart = firstLogDate > start ? firstLogDate : start;
+            
+            const accurateUptimeValue = await calculateUptime(id, actualStart, end);
+            displayUptime = accurateUptimeValue.toFixed(2);
+        }
 
         if (format === 'pdf') {
             const doc = new PDFDocument();
             res.setHeader('Content-Type', 'application/pdf');
             res.setHeader('Content-Disposition', `attachment; filename="${service.name}-recap.pdf"`);
-            
             doc.pipe(res);
 
-            // Header
             doc.fontSize(24).font('Helvetica-Bold').text('Looyal Status Recap', { align: 'center' });
             doc.moveDown();
             
-            // Service Info Box
             doc.rect(50, 100, 500, 80).stroke();
             doc.fontSize(14).font('Helvetica-Bold').text(`Service: ${service.name}`, 70, 120);
             doc.fontSize(12).font('Helvetica').text(`Period: ${start.toLocaleDateString()} - ${end.toLocaleDateString()}`, 70, 145);
@@ -258,18 +400,13 @@ exports.downloadRecap = async (req, res) => {
             
             doc.moveDown(6);
 
-            // Summary Stats
-            const totalLogs = logs.length;
-            const outageLogs = logs.filter(l => l.status === 'outage').length;
-            const uptime = totalLogs > 0 ? ((totalLogs - outageLogs) / totalLogs * 100).toFixed(2) : 100;
-            
             doc.fontSize(16).font('Helvetica-Bold').text('Performance Summary');
             doc.moveDown(0.5);
             
             doc.fontSize(12).font('Helvetica');
-            doc.text(`Total Checks: ${totalLogs}`);
-            doc.text(`Outage Events: ${outageLogs}`);
-            doc.text(`Estimated Uptime: ${uptime}%`);
+            doc.text(`Total Checks: ${logs.length}`);
+            doc.text(`Outage Events: ${logs.filter(l => l.status === 'outage').length}`);
+            doc.text(`Estimated Uptime: ${displayUptime}%`);
             doc.moveDown(2);
 
             // Logs Table
@@ -314,6 +451,12 @@ exports.downloadRecap = async (req, res) => {
         } else if (format === 'excel') {
             const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet('Service Logs');
+
+            sheet.addRow(['Service', service.name]);
+            sheet.addRow(['Period', `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`]);
+            sheet.addRow(['Uptime Percentage', `${displayUptime}%`]);
+            sheet.addRow(['Total Checks', logs.length]);
+            sheet.addRow([]); // Empty row
 
             sheet.columns = [
                 { header: 'Timestamp', key: 'timestamp', width: 25 },

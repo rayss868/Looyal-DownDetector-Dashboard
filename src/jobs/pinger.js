@@ -3,6 +3,7 @@ const Service = require('../models/Service');
 const Incident = require('../models/Incident');
 const ServiceLog = require('../models/ServiceLog');
 const { Op } = require('sequelize');
+const { sendNotification } = require('../utils/webhookNotifier');
 
 const checkService = async (service) => {
     try {
@@ -10,14 +11,25 @@ const checkService = async (service) => {
         await axios.get(service.url, { timeout: 5000 });
         const duration = Date.now() - start;
 
-        // Check if status changed
-        if (service.status !== 'operational') {
-            // Log success only if status changed
+        // Check if status changed or if it's the first log (baseline)
+        const hasLogs = await ServiceLog.findOne({ where: { serviceId: service.id } });
+
+        if (service.status !== 'operational' || !hasLogs) {
+            // Log success if status changed or no logs exist
             await ServiceLog.create({
                 serviceId: service.id,
                 status: 'operational',
                 responseTime: duration
             });
+
+            // If it was down before, send recovery notification
+            if (service.status === 'outage') {
+                await sendNotification(
+                    '🟢 Service Recovered',
+                    `Service **${service.name}** is back online.\n**Response Time:** ${duration}ms`,
+                    3066993 // Green
+                );
+            }
         }
 
         // Update service status to operational
@@ -30,14 +42,23 @@ const checkService = async (service) => {
     } catch (error) {
         console.error(`[Pinger] ${service.name} is DOWN: ${error.message}`);
         
-        // Check if status changed
-        if (service.status !== 'outage') {
-            // Log failure only if status changed
+        // Check if status changed or if it's the first log (baseline)
+        const hasLogs = await ServiceLog.findOne({ where: { serviceId: service.id } });
+
+        if (service.status !== 'outage' || !hasLogs) {
+            // Log failure if status changed or no logs exist
             await ServiceLog.create({
                 serviceId: service.id,
                 status: 'outage',
                 responseTime: null
             });
+
+            // Send failure notification
+            await sendNotification(
+                '🔴 Service Down',
+                `Service **${service.name}** is unreachable.\n**Error:** ${error.message}`,
+                15158332 // Red
+            );
         }
 
         // Update service status to outage
